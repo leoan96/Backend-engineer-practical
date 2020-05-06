@@ -1,0 +1,24 @@
+{
+	"name": "payment",
+	"version": "1.0.0",
+	"description": "Handles payment for orders",
+	"main": "payments.js",
+	"scripts": {
+		"start": "node payments.js",
+		"dev": "nodemon payments.js",
+		"test": "mocha"
+	},
+	"keywords": [
+		"worker-node"
+	],
+	"author": "Loh Mun Kit",
+	"license": "ISC",
+	"dependencies": {
+		"amqplib": "^0.5.5",
+		"dotenv": "^8.2.0",
+		"jsonwebtoken": "^8.5.1"
+	},
+	"devDependencies": {
+		"nodemon": "^2.0.3"
+	}
+}

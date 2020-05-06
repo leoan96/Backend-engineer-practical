@@ -1,0 +1,44 @@
+version: "2.4"
+
+services:
+  order:
+    build:
+      context: "./order"
+    env_file:
+      - ./order/.env
+    volumes:
+      - ./order:/home/node/app
+      - /home/node/app/node_modules
+    ports:
+      # Remember to change the PORT environment variable in the ./order/.env should you change this port
+      - 8000:8000
+    depends_on:
+      - mongo
+      - rabbit
+
+  mongo:
+    image: "mongo"
+    ports:
+      # Allow MongoDB Compass to access to MongoDB database in the docker container
+      - "27018:27017"
+
+  rabbit:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15672"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  payment:
+    build:
+      context: "./payment"
+    restart: on-failure
+    volumes:
+      - ./payment:/home/node/app
+      - /home/node/app/node_modules
+    depends_on:
+      - rabbit

@@ -17,6 +17,7 @@ exports.createOrder = catchAsync(async (req, res, next) => {
 	const newOrder = await Order.create({ orderItems });
 
 	// Hard coding the USER ID to 12345 (to simulate mocked auth details).
+	// Send the ID of the newly connected order and it's item
 	// In actuality, need to get current user id.
 	const signedJWT = signToken(12345, newOrder.id, orderItems);
 

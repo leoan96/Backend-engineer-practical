@@ -61,6 +61,7 @@ const connectRabbitMQ = () => {
 				// 		new AppError('The user belonging to this account no longer exists!', 404)
 				// 	);
 				// }
+				// Process payment from order app
 				await processPayment(decoded_order);
 
 				setTimeout(() => {
@@ -81,8 +82,9 @@ const processPayment = async (order) => {
 	if (currentTime > orderTokenExpires) {
 		await Order.findByIdAndUpdate(order.orderID, { state: 'cancelled' });
 	} else {
-		const updateStateDeliver = setTimeout(async () => {
-			// Set state to 'delivered' after x = 5 secs
+		await Order.findByIdAndUpdate(order.orderID, { state: 'confirmed' });
+		// Set state to 'delivered' after x = 5 secs
+		setTimeout(async () => {
 			await Order.findByIdAndUpdate(order.orderID, { state: 'delivered' });
 		}, 5 * 1000);
 	}

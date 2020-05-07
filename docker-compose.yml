@@ -11,6 +11,7 @@ services:
       - /home/node/app/node_modules
     ports:
       # Remember to change the PORT environment variable in the ./order/.env should you change this port
+      # Same for the PORT environment variable in the web-deployment & web-cluster-ip-service yml files
       - 8000:8000
     depends_on:
       - mongo
@@ -27,11 +28,6 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:15672"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
 
   payment:
     build:

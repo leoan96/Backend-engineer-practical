@@ -36,9 +36,12 @@ services:
   payment:
     build:
       context: "./payment"
+    env_file:
+      - ./order/.env
     restart: on-failure
     volumes:
       - ./payment:/home/node/app
       - /home/node/app/node_modules
     depends_on:
+      - mongo
       - rabbit

@@ -1,11 +1,16 @@
 const path = require('path');
+const { promisify } = require('util');
 const jwt = require('jsonwebtoken');
 const amqp = require('amqplib/callback_api');
+const Order = require('./models/orderModel');
 
 // Configure environment variables
 const env_file = '.env';
 const env_path = path.join(__dirname, env_file);
 const dotenv = require('dotenv').config({ path: env_path });
+
+// Import MongoDB
+const db = require('./server');
 
 // Connect the Payment app to RabbitMQ to receive messages from Order app
 const connectRabbitMQ = () => {
@@ -36,12 +41,27 @@ const connectRabbitMQ = () => {
 
 			console.log('Waiting for messages in %s', queue);
 			// Retrive message from the queue
-			channel.consume(queue, (msg) => {
+			channel.consume(queue, async (msg) => {
+				const encoded_order = Buffer.from(msg.content).toString('utf-8');
 				console.log('Received order...');
-				console.log(
-					"Received '%s'",
-					Buffer.from(msg.content).toString('utf-8')
+				console.log("Received '%s'", encoded_order);
+
+				const decoded_order = await promisify(jwt.verify)(
+					encoded_order,
+					process.env.JWT_SECRET
 				);
+
+				// Making assumption that the ID still exists (query to check if userID exist in MongoDB)
+				// NOT IMPLEMENTED
+				// const currentUser = await User.findById(decoded.id);
+				// console.log('current user : ', currentUser);
+
+				// if (!currentUser) {
+				// 	return next(
+				// 		new AppError('The user belonging to this account no longer exists!', 404)
+				// 	);
+				// }
+				await processPayment(decoded_order);
 
 				setTimeout(() => {
 					channel.ack(msg);
@@ -51,3 +71,19 @@ const connectRabbitMQ = () => {
 	});
 };
 connectRabbitMQ();
+
+// Payment processing logic (mock logic)
+const processPayment = async (order) => {
+	const currentTime = parseInt(Date.now() / 1000, 10);
+	const orderTokenExpires = order.exp;
+
+	// If more than 60secs (JWT token expires) have elapse since the issue of token, state is changed to 'cancelled'
+	if (currentTime > orderTokenExpires) {
+		await Order.findByIdAndUpdate(order.orderID, { state: 'cancelled' });
+	} else {
+		const updateStateDeliver = setTimeout(async () => {
+			// Set state to 'delivered' after x = 5 secs
+			await Order.findByIdAndUpdate(order.orderID, { state: 'delivered' });
+		}, 5 * 1000);
+	}
+};

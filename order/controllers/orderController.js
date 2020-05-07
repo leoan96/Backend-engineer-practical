@@ -5,8 +5,8 @@ const AppError = require('../utils/appError');
 const Order = require('../models/orderModel');
 
 // Create jwt token for verification
-const signToken = (id, orderItems) => {
-	return jwt.sign({ id, orderItems }, process.env.JWT_SECRET, {
+const signToken = (userId, orderID, orderItems) => {
+	return jwt.sign({ userId, orderID, orderItems }, process.env.JWT_SECRET, {
 		expiresIn: process.env.JWT_EXPIRES_IN,
 	});
 };
@@ -18,7 +18,7 @@ exports.createOrder = catchAsync(async (req, res, next) => {
 
 	// Hard coding the USER ID to 12345 (to simulate mocked auth details).
 	// In actuality, need to get current user id.
-	const signedJWT = signToken(12345, orderItems);
+	const signedJWT = signToken(12345, newOrder.id, orderItems);
 
 	// Send Remote Procedure Call(RPC) call to payment app server to process the order
 	try {

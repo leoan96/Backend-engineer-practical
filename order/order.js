@@ -29,6 +29,7 @@ if (process.env.NODE_ENV === 'development') {
 	app.use(morgan('dev'));
 }
 
+// Default root route
 app.get('/', (req, res) => {
 	res.status(200).json({
 		status: 'success',

@@ -4,13 +4,14 @@ const amqp = require('amqplib/callback_api');
 const AppError = require('../utils/appError');
 const Order = require('../models/orderModel');
 
-// Create jwt token
+// Create jwt token for verification
 const signToken = (id, orderItems) => {
 	return jwt.sign({ id, orderItems }, process.env.JWT_SECRET, {
 		expiresIn: process.env.JWT_EXPIRES_IN,
 	});
 };
 
+// Create an order
 exports.createOrder = catchAsync(async (req, res, next) => {
 	const orderItems = req.body.orderItems;
 	const newOrder = await Order.create({ orderItems });
@@ -20,28 +21,32 @@ exports.createOrder = catchAsync(async (req, res, next) => {
 	const signedJWT = signToken(12345, orderItems);
 
 	// Send Remote Procedure Call(RPC) call to payment app server to process the order
-	const connectionString = process.env.RABBITMQ_HOST;
-	amqp.connect(connectionString, function (error, connection) {
-		if (error) {
-			throw error;
-		}
-		connection.createChannel(function (error1, channel) {
-			if (error1) {
-				throw error1;
+	try {
+		const connectionString = process.env.RABBITMQ_HOST;
+		amqp.connect(connectionString, function (error, connection) {
+			if (error) {
+				throw error;
 			}
+			connection.createChannel(function (error1, channel) {
+				if (error1) {
+					throw error1;
+				}
 
-			const queue = 'rpc_queue';
+				const queue = 'rpc_queue';
 
-			channel.assertQueue(queue, {
-				durable: true,
+				channel.assertQueue(queue, {
+					durable: true,
+				});
+
+				channel.sendToQueue(queue, Buffer.from(signedJWT, 'utf8'), {
+					persistent: true,
+				});
+				console.log('Processing payments for order...');
 			});
-
-			channel.sendToQueue(queue, Buffer.from(signedJWT, 'utf8'), {
-				persistent: true,
-			});
-			console.log('Processing payments for order...');
 		});
-	});
+	} catch (err) {
+		console.log(`Error! 💥: ${err.message}`);
+	}
 
 	res.status(201).json({
 		status: 'success',
@@ -52,6 +57,7 @@ exports.createOrder = catchAsync(async (req, res, next) => {
 	});
 });
 
+// Retrieve all orders
 exports.getAllOrder = catchAsync(async (req, res, next) => {
 	const orders = await Order.find({}).sort('-orderCreatedAt');
 
@@ -63,6 +69,7 @@ exports.getAllOrder = catchAsync(async (req, res, next) => {
 	});
 });
 
+// Check the state of an individual order
 exports.checkState = catchAsync(async (req, res, next) => {
 	const order = await Order.findById(req.params.orderID);
 
@@ -78,6 +85,7 @@ exports.checkState = catchAsync(async (req, res, next) => {
 	});
 });
 
+// Cancel the individual order
 exports.cancelOrder = catchAsync(async (req, res, next) => {
 	const order = await Order.findByIdAndUpdate(
 		req.params.orderID,

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: payment
+  template:
+    metadata:
+      labels:
+        component: payment
+    spec:
+      containers:
+        - name: payment
+          image: leoan96/payment
+          env:
+            - name: DATABASE_USERNAME
+              value: mongodb://mongo-cluster-ip-service:27017/order
+            - name: RABBITMQ_HOST
+              value: amqp://rabbit-cluster-ip-service
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt
+                  key: JWT_SECRET
+            - name: JWT_EXPIRES_IN
+              valueFrom:
+                secretKeyRef:
+                  name: jwt
+                  key: JWT_EXPIRES_IN

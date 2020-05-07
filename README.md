@@ -79,7 +79,7 @@ Additional notes about how to deploy this on a live system using Google Cloud Pl
 - `Connect to the kubernetes cluster using the google Cloud SDK`
 - `type kubectl apply -f k8s`
 
-## Screenshots
+## Screenshots (Using Postman to visit the Order App)
 
 ### Initial Empty Order
 

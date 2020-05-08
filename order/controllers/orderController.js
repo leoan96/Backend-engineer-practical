@@ -28,27 +28,6 @@ exports.createOrder = catchAsync(async (req, res, next) => {
 	// Send Remote Procedure Call(RPC) call to payment app server to process the order
 	try {
 		const connectionString = process.env.RABBITMQ_HOST;
-		// amqp.connect(connectionString, function (error, connection) {
-		// 	if (error) {
-		// 		throw error;
-		// 	}
-		// 	connection.createChannel(function (error1, channel) {
-		// 		if (error1) {
-		// 			throw error1;
-		// 		}
-
-		// 		const queue = 'rpc_queue';
-
-		// 		channel.assertQueue(queue, {
-		// 			durable: true,
-		// 		});
-
-		// 		channel.sendToQueue(queue, Buffer.from(signedJWT, 'utf8'), {
-		// 			persistent: true,
-		// 		});
-		// 		console.log('Processing payments for order...');
-		// 	});
-		// });
 		amqp.connect(connectionString, (err1, connection) => {
 			if (err1) throw err1;
 			connection.createChannel((err2, channel) => {
@@ -95,14 +74,6 @@ exports.createOrder = catchAsync(async (req, res, next) => {
 	} catch (err) {
 		console.log(`Error! 💥: ${err.message}`);
 	}
-
-	// res.status(201).json({
-	// 	status: 'success',
-	// 	data: {
-	// 		newOrder,
-	// 		token: signedJWT,
-	// 	},
-	// });
 });
 
 // Retrieve all orders

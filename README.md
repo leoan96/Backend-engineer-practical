@@ -2,23 +2,6 @@
 
 2 small applications (micro-services) written with ExpressJS. Each of the services have their own purpose of existing and single responsibility.
 
-1. Orders Application
-
-   1. Responsible for orders management
-   2. Each order can be at the single state at the time
-   3. Order states - created, confirmed, delivered, cancelled
-   4. After order was created Orders App should trigger Payments App call to process a payment for the current order.
-   5. (Assuming that Orders already store an Auth information of the user, so you can send dummy PIN, Token, whatever)
-   6. An Application should have API endpoints to:
-      1. create an order
-      2. cancel an order
-      3. check order status
-
-2. Payments Application
-   1. Responsible for payment processing
-   2. Payments App should handle requests by Order App to verify payment transaction and confirmed or declined an order.
-   3. The logic behind the payment processing should be mocked and return a random result to the Orders App.
-
 ## Overview Diagram
 
 ![](images/BackendOverview.png)

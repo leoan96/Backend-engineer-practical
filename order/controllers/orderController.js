@@ -14,9 +14,57 @@ const signToken = (userId, orderID, orderItems) => {
 	});
 };
 
+// Send order to payment app for processing
+const sendOrderToPayment = (res, signedJWT, orderDetails) => {
+	const connectionString = process.env.RABBITMQ_HOST;
+	amqp.connect(connectionString, (err1, connection) => {
+		if (err1) throw err1;
+		connection.createChannel((err2, channel) => {
+			if (err2) throw err2;
+
+			let correlationId;
+			channel.assertQueue('', { exclusive: true }, (err3, q) => {
+				if (err3) throw err3;
+				// Generate a unique uuid for this message in order to receive back response from the payment app
+				correlationId = uuid.v4();
+
+				// Consume the response from the Payment app
+				channel.consume(
+					q.queue,
+					(msg) => {
+						if (msg.properties.correlationId === correlationId) {
+							const results = JSON.parse(msg.content.toString());
+
+							setTimeout(() => {
+								connection.close();
+
+								res.status(201).json({
+									status: 'success',
+									data: {
+										results,
+										token: signedJWT,
+									},
+								});
+							}, 300);
+						}
+					},
+					{ noAck: true }
+				);
+
+				// Send message from the Order app to Payment app
+				channel.sendToQueue('rpc_queue', orderDetails, {
+					correlationId: correlationId,
+					replyTo: q.queue,
+				});
+				console.log('Processing payments for order...');
+			});
+		});
+	});
+};
+
 // Create an order
 exports.createOrder = catchAsync(async (req, res, next) => {
-	const orderItems = req.body.orderItems;
+	const { orderItems } = req.body;
 	const newOrder = await Order.create({ orderItems });
 
 	// Hard coding the USER ID to 12345 (to simulate mocked auth details).
@@ -27,50 +75,7 @@ exports.createOrder = catchAsync(async (req, res, next) => {
 
 	// Send Remote Procedure Call(RPC) call to payment app server to process the order
 	try {
-		const connectionString = process.env.RABBITMQ_HOST;
-		amqp.connect(connectionString, (err1, connection) => {
-			if (err1) throw err1;
-			connection.createChannel((err2, channel) => {
-				if (err2) throw err2;
-
-				let correlationId;
-				channel.assertQueue('', { exclusive: true }, (err3, q) => {
-					if (err3) throw err3;
-					// Generate a unique uuid for this message in order to receive back response from the payment app
-					correlationId = uuid.v4();
-
-					// Consume the response from the Payment app
-					channel.consume(
-						q.queue,
-						(msg) => {
-							if (msg.properties.correlationId === correlationId) {
-								const results = JSON.parse(msg.content.toString());
-
-								setTimeout(() => {
-									connection.close();
-
-									res.status(201).json({
-										status: 'success',
-										data: {
-											results,
-											token: signedJWT,
-										},
-									});
-								}, 300);
-							}
-						},
-						{ noAck: true }
-					);
-
-					// Send message from the Order app to Payment app
-					channel.sendToQueue('rpc_queue', orderDetails, {
-						correlationId: correlationId,
-						replyTo: q.queue,
-					});
-					console.log('Processing payments for order...');
-				});
-			});
-		});
+		sendOrderToPayment(res, signedJWT, orderDetails);
 	} catch (err) {
 		console.log(`Error! 💥: ${err.message}`);
 	}

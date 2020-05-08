@@ -15,7 +15,10 @@ const orderSchema = new mongoose.Schema(
 			type: Date,
 			default: Date.now(),
 		},
-		orderItems: [String],
+		orderItems: {
+			type: [String],
+			default: ['Placeholder order item'],
+		},
 		// Used to refer to User model for user shipping details such as email, address, payment details \
 		// (can uncomment this if User model is implemented)
 		// userID: {

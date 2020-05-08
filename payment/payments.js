@@ -62,7 +62,16 @@ const connectRabbitMQ = () => {
 				// 	);
 				// }
 				// Process payment from order app
-				await processPayment(decoded_order);
+				const updatedState = await processPayment(decoded_order);
+				console.log(updatedState);
+
+				channel.sendToQueue(
+					msg.properties.replyTo,
+					Buffer.from(JSON.stringify(updatedState)),
+					{
+						correlationId: msg.properties.correlationId,
+					}
+				);
 
 				setTimeout(() => {
 					channel.ack(msg);
@@ -80,12 +89,32 @@ const processPayment = async (order) => {
 
 	// If more than 60secs (JWT token expires) have elapse since the issue of token, state is changed to 'cancelled'
 	if (currentTime > orderTokenExpires) {
-		await Order.findByIdAndUpdate(order.orderID, { state: 'cancelled' });
+		const updateState = await Order.findByIdAndUpdate(
+			order.orderID,
+			{
+				state: 'cancelled',
+			},
+			{
+				new: true,
+			}
+		);
+		return updateState;
 	} else {
-		await Order.findByIdAndUpdate(order.orderID, { state: 'confirmed' });
+		const updateState = await Order.findByIdAndUpdate(
+			order.orderID,
+			{
+				state: 'confirmed',
+			},
+			{
+				new: true,
+			}
+		);
+		// https://stackoverflow.com/questions/24928846/get-return-value-from-settimeout
+		// (function in settimeout will run after the main function is returned)
 		// Set state to 'delivered' after x = 5 secs
 		setTimeout(async () => {
 			await Order.findByIdAndUpdate(order.orderID, { state: 'delivered' });
 		}, 5 * 1000);
+		return updateState;
 	}
 };
